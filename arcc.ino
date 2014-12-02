@@ -1,7 +1,7 @@
 #include <SoftwareSerial.h>
 #include <Servo.h>
 
-SoftwareSerial mySerial(3, 2); // RX, TX
+SoftwareSerial mySerial(12, 13); // RX, TX
 
 String lPwmStr = "";
 String rPwmStr = "";
@@ -15,15 +15,19 @@ String cmdStr = "";
 const int ledPin = 13;  // use the built in LED on pin 13 of the Uno
 int state = 0;
 
-// Motor 1
-const int dir1PinA = 4;
-const int dir2PinA = 5;
-const int speedPinA = 6; // Needs to be a PWM pin to be able to control motor speed
+// left motor 
+const int dir1PinA = 2; // N3 motor shield
+const int dir2PinA = 4; // N4 motor shield
+const int speedPinA = 5; // ENB motor shield, pwm pin
 
-// Motor 2
-const int dir1PinB = 7;
-const int dir2PinB = 8;
-const int speedPinB = 9; // Needs to be a PWM pin to be able to control motor speed
+// right motor
+const int dir1PinB = 7; // N2 motor shield
+const int dir2PinB = 8; // N1 motor shield
+const int speedPinB = 6; // ENA motor shield, pwm pin
+
+const int hServoPin = 9; // Servo library disables analogWrite() (PWM) functionality on pins 9 and 10 
+const int vServoPin = 10; // Servo library disables analogWrite() (PWM) functionality on pins 9 and 10
+
 
 const int bufLength = 11;
 char inData[bufLength]; // Allocate some space for the string
@@ -51,8 +55,6 @@ int vPos = servoCenter;
 char hServoDir;
 char vServoDir;
 
-  const int hServoPin = 10;
-  const int vServoPin = 11;
 
 
 

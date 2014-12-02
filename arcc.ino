@@ -1,4 +1,5 @@
 #include <SoftwareSerial.h>
+#include <Servo.h>
 
 SoftwareSerial mySerial(3, 2); // RX, TX
 
@@ -11,20 +12,21 @@ int rPwm;
 String command = ""; // Stores response of the HC-06 Bluetooth device
 String cmdStr = "";
 
-int ledPin = 13;  // use the built in LED on pin 13 of the Uno
+const int ledPin = 13;  // use the built in LED on pin 13 of the Uno
 int state = 0;
 
 // Motor 1
-int dir1PinA = 4;
-int dir2PinA = 5;
-int speedPinA = 6; // Needs to be a PWM pin to be able to control motor speed
+const int dir1PinA = 4;
+const int dir2PinA = 5;
+const int speedPinA = 6; // Needs to be a PWM pin to be able to control motor speed
 
 // Motor 2
-int dir1PinB = 7;
-int dir2PinB = 8;
-int speedPinB = 9; // Needs to be a PWM pin to be able to control motor speed
+const int dir1PinB = 7;
+const int dir2PinB = 8;
+const int speedPinB = 9; // Needs to be a PWM pin to be able to control motor speed
 
-char inData[10]; // Allocate some space for the string
+const int bufLength = 11;
+char inData[bufLength]; // Allocate some space for the string
 char inChar=-1; // Where to store the character read
 byte index = 0; // Index into array; where to store the character
 int cmdCode = 0;
@@ -36,9 +38,30 @@ char rDir = 0;
 char lDirOld = 0;
 char rDirOld = 0;
 
+Servo servoH;          // horizontal servo
+Servo servoV;         // vertical servo
+
+const int servoCenter = 90;
+const int servoMin = 10;
+const int servoMax = 160;
+
+int hPos = servoCenter;
+int vPos = servoCenter;
+
+char hServoDir;
+char vServoDir;
+
+  const int hServoPin = 10;
+  const int vServoPin = 11;
+
+
+
+
+char actionCommand;
+
 void setup() {
-  // The HC-06 defaults to 9600 according to the datasheet.
   mySerial.begin(38400);
+  //Serial.begin(9600);
   
   pinMode(ledPin, OUTPUT);
     digitalWrite(ledPin, LOW);
@@ -49,7 +72,9 @@ void setup() {
   pinMode(dir1PinB,OUTPUT);
   pinMode(dir2PinB,OUTPUT);
   pinMode(speedPinB,OUTPUT);
-    
+
+  servoH.attach(hServoPin);  // set horizontal to digital pin 10
+  servoV.attach(vServoPin);  // set vertical servo to digital pin 11
 }
 
 void loop() {
@@ -59,8 +84,18 @@ void loop() {
   if (readSuccess) {
     parseCommand();
     readSuccess = false;
-    updateMotor(dir1PinA, dir2PinA, speedPinA, &lDirOld, lDir, lPwm);
-    updateMotor(dir1PinB, dir2PinB, speedPinB, &rDirOld, rDir, rPwm);
+      switch (actionCommand) {
+        case 'm':
+          updateMotor(dir1PinA, dir2PinA, speedPinA, &lDirOld, lDir, lPwm);
+          updateMotor(dir1PinB, dir2PinB, speedPinB, &rDirOld, rDir, rPwm);
+          break;
+        case 'h':
+          updateServo(servoH, hServoDir, &hPos);
+          break;
+        case 'v':
+          updateServo(servoV, vServoDir, &vPos);
+          break;
+      }
   }
   if (clearBuf) {
     doClearBuf();
@@ -98,7 +133,7 @@ void readCommand() {
 
        inData[index] = inChar; // Store it
        index++; // Increment where to write next
-      if (index >= 9) {
+      if (index >= bufLength - 1) {
         clearBuf = true;
         break;
       }
@@ -106,8 +141,8 @@ void readCommand() {
 }
 
 void doClearBuf() {
-        for (int i=0;i<9;i++) {
-            inData[i]=0;
+        for (int i = 0;i < bufLength - 1; i++) {
+            inData[i] = 0;
         }
         index=0;
         clearBuf = false;
@@ -115,11 +150,54 @@ void doClearBuf() {
 
 void parseCommand() {
       cmdStr = String(inData);
-      lDir = cmdStr.charAt(0);
-      rDir = cmdStr.charAt(4);
-      lPwmStr = cmdStr.substring(1, 4);
-      rPwmStr = cmdStr.substring(5, 8);
+      actionCommand = cmdStr.charAt(0);
+      switch (actionCommand) {
+        case 'm':
+          parseMotorCommand();
+          break;
+        case 'h':
+          parseServoCommandH();
+          break;
+        case 'v':
+          parseServoCommandV();
+          break;
+      }
+}
+
+void parseMotorCommand() {
+      lDir = cmdStr.charAt(1);
+      rDir = cmdStr.charAt(5);
+      lPwmStr = cmdStr.substring(2, 5);
+      rPwmStr = cmdStr.substring(6, 9);
       lPwm = lPwmStr.toInt();
       rPwm = rPwmStr.toInt();
+      //Serial.println(lPwm);
+      //      Serial.println(rPwm);
 }
+
+void parseServoCommandH() {
+      hServoDir = cmdStr.charAt(1);
+}
+
+void parseServoCommandV() {
+      vServoDir = cmdStr.charAt(1);
+}
+
+void updateServo(Servo servo, char dir, int * pos) {
+  int inc;
+      switch (dir) {
+        case '0':
+          inc = -10;
+          break;
+        case '1':
+          inc = 10;
+          break;
+      }
+    int newVal = *pos + inc;
+    if (newVal >= servoMin && newVal <= servoMax) {
+      *pos = *pos + inc;
+    }
+    servo.write(*pos);
+}
+
 

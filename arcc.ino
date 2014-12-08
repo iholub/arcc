@@ -1,7 +1,7 @@
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 #include <Servo.h>
 
-SoftwareSerial mySerial(12, 13); // RX, TX
+//SoftwareSerial mySerial(12, 13); // RX, TX
 
 String lPwmStr = "";
 String rPwmStr = "";
@@ -55,14 +55,10 @@ int vPos = servoCenter;
 char hServoDir;
 char vServoDir;
 
-
-
-
-
 char actionCommand;
 
 void setup() {
-  mySerial.begin(38400);
+  Serial.begin(38400);
   //Serial.begin(9600);
   
   pinMode(ledPin, OUTPUT);
@@ -123,8 +119,8 @@ void updateMotor(int dir1Pin, int dir2Pin, int speedPin, char * dirOldValue, cha
 }
 
 void readCommand() {
-    while (mySerial.available() > 0) {
-       inChar = mySerial.read(); // Read a character
+    while (Serial.available() > 0) {
+       inChar = Serial.read(); // Read a character
        if (inChar == 'z') {
          inData[index] = '\0'; // Null terminate the string
          readSuccess = true;

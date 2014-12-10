@@ -57,12 +57,23 @@ char vServoDir;
 
 char actionCommand;
 
+const int analogInput = 0;
+float vout = 0.0;
+const float R1 = 46720; 
+const float R2 = 9980; 
+const float VD = (R1 + R2)/R2;
+int voltagePinValue;
+
+unsigned long time1 = 0;
+unsigned long time2 = 0;
+
 void setup() {
   Serial.begin(38400);
   //Serial.begin(9600);
+  pinMode(analogInput, INPUT);
   
   pinMode(ledPin, OUTPUT);
-    digitalWrite(ledPin, LOW);
+  //digitalWrite(ledPin, LOW);
     
   pinMode(dir1PinA,OUTPUT);
   pinMode(dir2PinA,OUTPUT);
@@ -77,6 +88,8 @@ void setup() {
 
 void loop() {
     
+  readVoltage();
+  
   readCommand();
   
   if (readSuccess) {
@@ -198,4 +211,14 @@ void updateServo(Servo servo, char dir, int * pos) {
     servo.write(*pos);
 }
 
+void readVoltage() {
+  time2 = millis();
+  if (time2 - time1 > 5000) {
+    time1 = time2;
+     voltagePinValue = analogRead(analogInput);
+     vout = (voltagePinValue * 5.0 * VD) / 1024.0;
+     Serial.print("voltage: ");
+     Serial.println(vout);
+  }
+}
 

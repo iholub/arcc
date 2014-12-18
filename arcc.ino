@@ -57,11 +57,18 @@ char vServoDir;
 
 char actionCommand;
 
-const int analogInput = 0;
+const int voltPinMotor = 0;
+const int voltPinCtrl = 6;
+const int voltPinServo = 7;
 float vout = 0.0;
 const float R1 = 46720; 
 const float R2 = 9980; 
 const float VD = (R1 + R2)/R2;
+
+const float ctrl_R1 = 10000; 
+const float ctrl_R2 = 4700; 
+const float ctrl_VD = (ctrl_R1 + ctrl_R2)/ctrl_R2;
+
 int voltagePinValue;
 
 unsigned long time1 = 0;
@@ -70,7 +77,9 @@ unsigned long time2 = 0;
 void setup() {
   Serial.begin(38400);
   //Serial.begin(9600);
-  pinMode(analogInput, INPUT);
+  pinMode(voltPinMotor, INPUT);
+  pinMode(voltPinCtrl, INPUT);
+  pinMode(voltPinServo, INPUT);
   
   pinMode(ledPin, OUTPUT);
   //digitalWrite(ledPin, LOW);
@@ -213,12 +222,24 @@ void updateServo(Servo servo, char dir, int * pos) {
 
 void readVoltage() {
   time2 = millis();
-  if (time2 - time1 > 5000) {
+  if (time2 - time1 > 2000) {
     time1 = time2;
-     voltagePinValue = analogRead(analogInput);
+     voltagePinValue = analogRead(voltPinMotor);
      vout = (voltagePinValue * 5.0 * VD) / 1024.0;
-     Serial.print("voltage: ");
+     Serial.print("voltages, motor: ");
+     Serial.print(vout);
+    
+     voltagePinValue = analogRead(voltPinCtrl);
+     vout = (voltagePinValue * 5.0 * ctrl_VD) / 1024.0;
+     Serial.print(" ctrl: ");
+     Serial.print(vout);
+  
+     voltagePinValue = analogRead(voltPinServo);
+     vout = (voltagePinValue * 5.0 * ctrl_VD) / 1024.0;
+     Serial.print(" servo: ");
      Serial.println(vout);
+   
+     
   }
 }
 

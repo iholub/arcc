@@ -60,7 +60,9 @@ char actionCommand;
 const int voltPinMotor = 0;
 const int voltPinCtrl = 6;
 const int voltPinServo = 7;
-float vout = 0.0;
+float voltMotor = 0.0;
+float voltCtrl = 0.0;
+float voltServo = 0.0;
 const float R1 = 46720; 
 const float R2 = 9980; 
 const float VD = (R1 + R2)/R2;
@@ -73,6 +75,8 @@ int voltagePinValue;
 
 unsigned long time1 = 0;
 unsigned long time2 = 0;
+unsigned long time3 = 0;
+unsigned long readVoltagesTime = 0;
 
 void setup() {
   Serial.begin(38400);
@@ -114,6 +118,9 @@ void loop() {
           break;
         case 'v':
           updateServo(servoV, vServoDir, &vPos);
+          break;
+        case 'i':
+          printInfo();
           break;
       }
   }
@@ -181,6 +188,8 @@ void parseCommand() {
         case 'v':
           parseServoCommandV();
           break;
+        case 'i':
+          break;          
       }
 }
 
@@ -222,24 +231,29 @@ void updateServo(Servo servo, char dir, int * pos) {
 
 void readVoltage() {
   time2 = millis();
-  if (time2 - time1 > 2000) {
+  if (time2 - time1 > 1000) {
     time1 = time2;
      voltagePinValue = analogRead(voltPinMotor);
-     vout = (voltagePinValue * 5.0 * VD) / 1024.0;
-     Serial.print("voltages, motor: ");
-     Serial.print(vout);
+     voltMotor = (voltagePinValue * 5.0 * VD) / 1024.0;
     
      voltagePinValue = analogRead(voltPinCtrl);
-     vout = (voltagePinValue * 5.0 * ctrl_VD) / 1024.0;
-     Serial.print(" ctrl: ");
-     Serial.print(vout);
+     voltCtrl = (voltagePinValue * 5.0 * ctrl_VD) / 1024.0;
   
      voltagePinValue = analogRead(voltPinServo);
-     vout = (voltagePinValue * 5.0 * ctrl_VD) / 1024.0;
-     Serial.print(" servo: ");
-     Serial.println(vout);
-   
+     voltServo = (voltagePinValue * 5.0 * ctrl_VD) / 1024.0;
+   readVoltagesTime = millis() - time2;
      
   }
+}
+
+void printInfo() {
+     Serial.print("v: m: ");
+     Serial.print(voltMotor);
+     Serial.print(" c: ");
+     Serial.print(voltCtrl);
+     Serial.print(" s: ");
+     Serial.print(voltServo);
+     Serial.print(" t: ");
+     Serial.println(readVoltagesTime);
 }
 

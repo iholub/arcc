@@ -29,7 +29,7 @@ const int hServoPin = 9; // Servo library disables analogWrite() (PWM) functiona
 const int vServoPin = 10; // Servo library disables analogWrite() (PWM) functionality on pins 9 and 10
 
 
-const int bufLength = 11;
+const int bufLength = 20;
 char inData[bufLength]; // Allocate some space for the string
 char inChar=-1; // Where to store the character read
 byte index = 0; // Index into array; where to store the character
@@ -79,7 +79,7 @@ unsigned long time3 = 0;
 unsigned long readVoltagesTime = 0;
 
 void setup() {
-  Serial.begin(38400);
+  Serial.begin(115200);
   //Serial.begin(9600);
   pinMode(voltPinMotor, INPUT);
   pinMode(voltPinCtrl, INPUT);

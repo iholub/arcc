@@ -11,6 +11,7 @@ int rPwm;
 
 String command = ""; // Stores response of the HC-06 Bluetooth device
 String cmdStr = "";
+boolean parseSuccess = false;
 
 const int ledPin = 13;  // use the built in LED on pin 13 of the Uno
 int state = 0;
@@ -33,9 +34,13 @@ const int bufLength = 20;
 char inData[bufLength]; // Allocate some space for the string
 char inChar=-1; // Where to store the character read
 byte index = 0; // Index into array; where to store the character
-int cmdCode = 0;
 boolean readSuccess = false;
+boolean readBufferOverflow = false;
 boolean clearBuf = false;
+boolean cmdUpdateMotor = false;
+boolean cmdUpdateServoH = false;
+boolean cmdUpdateServoV = false;
+boolean cmdShowInfo = false;
 
 char lDir = 0;
 char rDir = 0;
@@ -67,16 +72,23 @@ const float R1 = 46720;
 const float R2 = 9980; 
 const float VD = (R1 + R2)/R2;
 
-const float ctrl_R1 = 10000; 
-const float ctrl_R2 = 4700; 
+const float ctrl_R1 = 9970; 
+const float ctrl_R2 = 4686; 
 const float ctrl_VD = (ctrl_R1 + ctrl_R2)/ctrl_R2;
+
+const float servo_R1 = 9950; 
+const float servo_R2 = 4712; 
+const float servo_VD = (servo_R1 + servo_R2)/servo_R2;
 
 int voltagePinValue;
 
+String infoStr;
 unsigned long time1 = 0;
 unsigned long time2 = 0;
 unsigned long time3 = 0;
 unsigned long readVoltagesTime = 0;
+
+static char outstr[15];
 
 void setup() {
   Serial.begin(115200);
@@ -100,34 +112,53 @@ void setup() {
 }
 
 void loop() {
+      readSuccess = false;
+      parseSuccess = false;
+      cmdUpdateMotor = false;
+      cmdUpdateServoH = false;
+      cmdUpdateServoV = false;
+      cmdShowInfo = false;
+
     
   readVoltage();
   
   readCommand();
   
-  if (readSuccess) {
-    parseCommand();
-    readSuccess = false;
-      switch (actionCommand) {
-        case 'm':
-          updateMotor(dir1PinA, dir2PinA, speedPinA, &lDirOld, lDir, lPwm);
-          updateMotor(dir1PinB, dir2PinB, speedPinB, &rDirOld, rDir, rPwm);
-          break;
-        case 'h':
-          updateServo(servoH, hServoDir, &hPos);
-          break;
-        case 'v':
-          updateServo(servoV, vServoDir, &vPos);
-          break;
-        case 'i':
-          printInfo();
-          break;
+  if (!readSuccess) {
+    return;
+  }
+    boolean statOk = false;
+    if (!readBufferOverflow) {
+      parseCommand();
+      if (parseSuccess) {
+        statOk = true;
+          if (cmdUpdateMotor) {
+              updateMotor(dir1PinA, dir2PinA, speedPinA, &lDirOld, lDir, lPwm);
+              updateMotor(dir1PinB, dir2PinB, speedPinB, &rDirOld, rDir, rPwm);
+          }
+          if (cmdUpdateServoH) {
+            updateServo(servoH, hServoDir, &hPos);
+          }
+          if (cmdUpdateServoV) {
+            updateServo(servoV, vServoDir, &vPos);
+          }
+          if (cmdShowInfo) {
+            makeInfo();
+          }
       }
-  }
-  if (clearBuf) {
-    doClearBuf();
-  }
-    
+    }
+     
+     
+     Serial.print("st: ");
+     Serial.print(statOk);
+     Serial.print(" cmd: ");
+     Serial.print(cmdStr);
+     if (cmdShowInfo) {
+       Serial.print(" info: ");
+       Serial.print(infoStr);
+     }
+     Serial.println("");
+     Serial.flush();
 }
 
 void updateMotor(int dir1Pin, int dir2Pin, int speedPin, char * dirOldValue, char dirValue, int pwmVal) {
@@ -150,18 +181,23 @@ void updateMotor(int dir1Pin, int dir2Pin, int speedPin, char * dirOldValue, cha
 void readCommand() {
     while (Serial.available() > 0) {
        inChar = Serial.read(); // Read a character
-       if (inChar == 'z') {
+        if (inChar == 'z') {
          inData[index] = '\0'; // Null terminate the string
          readSuccess = true;
-         clearBuf = true;
-         cmdCode = 5;
+         readBufferOverflow = false;
+         cmdStr = String(inData);
+         doClearBuf();
          break;
        }
 
        inData[index] = inChar; // Store it
        index++; // Increment where to write next
       if (index >= bufLength - 1) {
-        clearBuf = true;
+        inData[index] = '\0'; // Null terminate the string
+        readSuccess = true;
+        readBufferOverflow = true;
+        cmdStr = String(inData);
+        doClearBuf();
         break;
       }
     }
@@ -176,40 +212,73 @@ void doClearBuf() {
 }
 
 void parseCommand() {
-      cmdStr = String(inData);
-      actionCommand = cmdStr.charAt(0);
-      switch (actionCommand) {
-        case 'm':
-          parseMotorCommand();
-          break;
-        case 'h':
-          parseServoCommandH();
-          break;
-        case 'v':
-          parseServoCommandV();
-          break;
-        case 'i':
-          break;          
+      int strLen = cmdStr.length();
+      int pos = 0;
+      boolean err = false;
+      while (pos <= strLen - 1) {
+          actionCommand = cmdStr.charAt(pos);
+          int cmdLength = 0;
+          if (actionCommand == 'm') {
+            cmdLength = 8;
+            if (pos + cmdLength <= strLen - 1) {
+              cmdUpdateMotor = true;
+               parseMotorCommand(pos);
+            } else {
+              err = true;
+              break;
+            }
+          } else
+          if (actionCommand == 'h') {
+            cmdLength = 1;
+            if (pos + cmdLength <= strLen - 1) {
+              cmdUpdateServoH = true;
+              parseServoCommandH(pos);
+            } else {
+              err = true;
+              break;
+            }
+          } else
+          if (actionCommand == 'v') {
+            cmdLength = 1;
+            if (pos + cmdLength <= strLen - 1) {
+              cmdUpdateServoV = true;
+              parseServoCommandV(pos);
+            } else {
+              err = true;
+              break;
+            }
+          } else
+          if (actionCommand == 'i')  {
+            cmdLength = 0;
+            cmdShowInfo = true;
+          } else {
+              err = true;
+              break;
+          }
+
+        pos = pos + 1 + cmdLength;
       }
+      
+      parseSuccess = !err;
 }
 
-void parseMotorCommand() {
-      lDir = cmdStr.charAt(1);
-      rDir = cmdStr.charAt(5);
-      lPwmStr = cmdStr.substring(2, 5);
-      rPwmStr = cmdStr.substring(6, 9);
+void parseMotorCommand(int pos) {
+      lDir = cmdStr.charAt(pos + 1);
+      rDir = cmdStr.charAt(pos + 5);
+      lPwmStr = cmdStr.substring(pos + 2, pos + 5);
+      rPwmStr = cmdStr.substring(pos + 6, pos + 9);
       lPwm = lPwmStr.toInt();
       rPwm = rPwmStr.toInt();
       //Serial.println(lPwm);
       //      Serial.println(rPwm);
 }
 
-void parseServoCommandH() {
-      hServoDir = cmdStr.charAt(1);
+void parseServoCommandH(int pos) {
+      hServoDir = cmdStr.charAt(pos + 1);
 }
 
-void parseServoCommandV() {
-      vServoDir = cmdStr.charAt(1);
+void parseServoCommandV(int pos) {
+      vServoDir = cmdStr.charAt(pos + 1);
 }
 
 void updateServo(Servo servo, char dir, int * pos) {
@@ -240,20 +309,31 @@ void readVoltage() {
      voltCtrl = (voltagePinValue * 5.0 * ctrl_VD) / 1024.0;
   
      voltagePinValue = analogRead(voltPinServo);
-     voltServo = (voltagePinValue * 5.0 * ctrl_VD) / 1024.0;
+     voltServo = (voltagePinValue * 5.0 * servo_VD) / 1024.0;
    readVoltagesTime = millis() - time2;
      
   }
 }
 
-void printInfo() {
-     Serial.print("v: m: ");
-     Serial.print(voltMotor);
-     Serial.print(" c: ");
-     Serial.print(voltCtrl);
-     Serial.print(" s: ");
-     Serial.print(voltServo);
-     Serial.print(" t: ");
-     Serial.println(readVoltagesTime);
+void makeInfo() {
+  infoStr = "";
+  if (!cmdShowInfo) {
+    return;
+  }
+     dtostrf(voltMotor,7, 3, outstr);
+     infoStr += " v: m: ";
+     infoStr += outstr;
+     
+     dtostrf(voltCtrl,7, 3, outstr);
+     infoStr += " c: ";
+     infoStr += outstr;
+     
+     dtostrf(voltServo,7, 3, outstr);
+     infoStr += " s: ";
+     infoStr += outstr;
+    
+     infoStr += " t: ";
+     infoStr += readVoltagesTime;
+     infoStr += " end";
 }
 

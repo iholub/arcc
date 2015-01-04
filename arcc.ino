@@ -90,6 +90,10 @@ unsigned long readVoltagesTime = 0;
 
 static char outstr[15];
 
+unsigned long timeStart = 0;
+unsigned long timeEnd = 0;
+unsigned long timeSpent = 0;
+
 void setup() {
   Serial.begin(115200);
   //Serial.begin(9600);
@@ -112,6 +116,7 @@ void setup() {
 }
 
 void loop() {
+  timeStart = millis();
       readSuccess = false;
       parseSuccess = false;
       cmdUpdateMotor = false;
@@ -148,16 +153,19 @@ void loop() {
       }
     }
      
-     
-     Serial.print("st: ");
+     timeEnd = millis();
+     timeSpent = timeEnd - timeStart;
+     Serial.print("{status: ");
      Serial.print(statOk);
-     Serial.print(" cmd: ");
+     Serial.print(", time: ");
+     Serial.print(timeSpent);
+     Serial.print(", cmd: ");
      Serial.print(cmdStr);
      if (cmdShowInfo) {
-       Serial.print(" info: ");
+       Serial.print(", info: ");
        Serial.print(infoStr);
      }
-     Serial.println("");
+     Serial.println("}");
      Serial.flush();
 }
 
@@ -316,24 +324,22 @@ void readVoltage() {
 }
 
 void makeInfo() {
-  infoStr = "";
   if (!cmdShowInfo) {
     return;
   }
+    infoStr = "{";
      dtostrf(voltMotor,7, 3, outstr);
-     infoStr += " v: m: ";
+     infoStr += "motor: ";
      infoStr += outstr;
      
      dtostrf(voltCtrl,7, 3, outstr);
-     infoStr += " c: ";
+     infoStr += ", ctrl: ";
      infoStr += outstr;
      
      dtostrf(voltServo,7, 3, outstr);
-     infoStr += " s: ";
+     infoStr += ", servo: ";
      infoStr += outstr;
-    
-     infoStr += " t: ";
-     infoStr += readVoltagesTime;
-     infoStr += " end";
+ 
+     infoStr += "}";
 }
 

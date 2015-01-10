@@ -8,17 +8,20 @@
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
 
-unsigned int pingSpeed = 200; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
+unsigned int pingSpeed = 50; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
 unsigned long pingTimer;     // Holds the next ping time.
 float pingDistance = 999.0;
+boolean isObstacleForward = false;
 
 //SoftwareSerial mySerial(12, 13); // RX, TX
 
 String lPwmStr = "";
 String rPwmStr = "";
 
-int lPwm;
-int rPwm;
+int lPwm = 0;
+int lPwmOld = 0;
+int rPwm = 0;
+int rPwmOld = 0;
 
 String command = ""; // Stores response of the HC-06 Bluetooth device
 String cmdStr = "";
@@ -52,6 +55,8 @@ boolean cmdUpdateMotor = false;
 boolean cmdUpdateServoH = false;
 boolean cmdUpdateServoV = false;
 boolean cmdShowInfo = false;
+boolean cmdStopBeforeObstacle = false;
+boolean stopBeforeObstacle = false;
 
 char lDir = 0;
 char rDir = 0;
@@ -142,7 +147,18 @@ void loop() {
       cmdUpdateServoH = false;
       cmdUpdateServoV = false;
       cmdShowInfo = false;
-
+      cmdStopBeforeObstacle = false;
+    
+    if (stopBeforeObstacle) {
+       if (isObstacleForward && (lDir == 'f') && (rDir == 'f')) {
+         updateMotorSpeed(speedPinA, &lPwmOld, 0);
+         updateMotorSpeed(speedPinB, &rPwmOld, 0);
+       } else {
+         updateMotorSpeed(speedPinA, &lPwmOld, lPwm);
+         updateMotorSpeed(speedPinB, &rPwmOld, rPwm);
+       }
+    }
+  
     
   readVoltage();
   
@@ -157,8 +173,10 @@ void loop() {
       if (parseSuccess) {
         statOk = true;
           if (cmdUpdateMotor) {
-              updateMotor(dir1PinA, dir2PinA, speedPinA, &lDirOld, lDir, lPwm);
-              updateMotor(dir1PinB, dir2PinB, speedPinB, &rDirOld, rDir, rPwm);
+            if (!(stopBeforeObstacle && isObstacleForward && (lDir == 'f') && (rDir == 'f'))) {
+              updateMotor(dir1PinA, dir2PinA, speedPinA, &lDirOld, lDir, &lPwmOld, lPwm);
+              updateMotor(dir1PinB, dir2PinB, speedPinB, &rDirOld, rDir, &rPwmOld, rPwm);
+            }
           }
           if (cmdUpdateServoH) {
             updateServo(servoH, hServoDir, &hPos);
@@ -190,7 +208,7 @@ void loop() {
      Serial.flush();
 }
 
-void updateMotor(int dir1Pin, int dir2Pin, int speedPin, char * dirOldValue, char dirValue, int pwmVal) {
+void updateMotor(int dir1Pin, int dir2Pin, int speedPin, char * dirOldValue, char dirValue, int * pwmOld, int pwmVal) {
   if (*dirOldValue != dirValue) {
     *dirOldValue = dirValue;
     switch (dirValue) {
@@ -204,7 +222,14 @@ void updateMotor(int dir1Pin, int dir2Pin, int speedPin, char * dirOldValue, cha
         break;
    } 
   }
-   analogWrite(speedPin, pwmVal);//Sets speed variable via PWM 
+  updateMotorSpeed(speedPin, pwmOld, pwmVal);
+}
+
+void updateMotorSpeed(int speedPin, int * pwmOld, int pwmVal) {
+    if (*pwmOld != pwmVal) {
+      *pwmOld = pwmVal;
+      analogWrite(speedPin, pwmVal);//Sets speed variable via PWM 
+    }
 }
 
 void readCommand() {
@@ -280,11 +305,15 @@ void parseCommand() {
           if (actionCommand == 'i')  {
             cmdLength = 0;
             cmdShowInfo = true;
+          } else
+          if (actionCommand == 'o')  {
+            cmdLength = 1;
+            cmdStopBeforeObstacle = true;
+            parseStopBeforeObstacle(pos);
           } else {
               err = true;
               break;
           }
-
         pos = pos + 1 + cmdLength;
       }
       
@@ -304,6 +333,10 @@ void parseMotorCommand(int pos) {
 
 void parseServoCommandH(int pos) {
       hServoDir = cmdStr.charAt(pos + 1);
+}
+
+void parseStopBeforeObstacle(int pos) {
+  stopBeforeObstacle = cmdStr.charAt(pos + 1) == '1';
 }
 
 void parseServoCommandV(int pos) {
@@ -369,6 +402,7 @@ void echoCheck() { // Timer2 interrupt calls this function every 24uS where you 
   if (sonar.check_timer()) { // This is how you check to see if the ping was received.
     // Here's where you can add code.
     pingDistance = sonar.ping_result / US_ROUNDTRIP_CM;
+    isObstacleForward = pingDistance < 30;
   }
   // Don't do anything here!
 }

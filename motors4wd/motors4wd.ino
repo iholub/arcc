@@ -17,6 +17,8 @@ const int m4Dir1Pin = 8;
 const int m4Dir2Pin = 9;
 const int m4PwmPin = 10;
 
+char cmd = 0;
+
 void setup() {   
   Serial.begin(9600);  
 
@@ -39,6 +41,100 @@ void setup() {
 }
 
 void loop() {
+//  if (Serial.available()) {
+//    char ccc = Serial.read();
+//     Serial.write(ccc);
+//     Serial.write(ccc + 1);
+//     return;
+//  }
+  
+  if (Serial.available() > 0) {
+    cmd = Serial.read();
+    Serial.print("I received: ");
+    Serial.println(cmd);
+ // say what you got:
+                //Serial.print("I received: ");
+                //Serial.println(incomingByte, DEC);
+    switch (cmd) {
+      case 'w':
+        updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 1);
+        break;
+      case 's':
+        updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 0);
+        break;
+      case 'z':
+        updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 2);
+        break;
+        
+      case 'e':
+        updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 1);
+        break;
+      case 'd':
+        updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 0);
+        break;
+      case 'x':
+        updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 2);
+        break;
+
+
+      case 'r':
+        updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 1);
+        break;
+      case 'f':
+        updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 0);
+        break;
+      case 'c':
+        updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 2);
+        break;
+
+
+      case 't':
+        updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 1);
+        break;
+      case 'g':
+        updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 0);
+        break;
+      case 'v':
+        updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 2);
+        break;
+
+
+      case 'i':
+        updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 1);
+        updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 1);
+        updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 1);
+        updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 1);
+        break;
+      case 'j':
+        updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 2);
+        updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 1);
+        updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 2);
+        updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 1);
+        break;
+      case 'k':
+        updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 1);
+        updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 2);
+        updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 1);
+        updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 2);
+        break;
+      case 'n':
+      case 'm':
+        updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 2);
+        updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 2);
+        updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 2);
+        updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 2);
+        break;
+      case 'p':
+        updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 3);
+        updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 3);
+        updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 3);
+        updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 3);
+        break;
+    }
+  }
+}
+
+void test() {
   updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 1);
   updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 1);
   updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 1);

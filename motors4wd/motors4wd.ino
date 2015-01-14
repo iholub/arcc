@@ -18,6 +18,7 @@ const int m4Dir2Pin = 9;
 const int m4PwmPin = 10;
 
 char cmd = 0;
+int speedVal = 0;
 
 void setup() {   
   Serial.begin(9600);  
@@ -38,6 +39,7 @@ void setup() {
   pinMode(m4Dir2Pin,OUTPUT);
   pinMode(m4PwmPin,OUTPUT);
 
+  updateSpeedAll();
 }
 
 void loop() {
@@ -130,9 +132,71 @@ void loop() {
         updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 3);
         updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 3);
         break;
+        
+      case 'u':
+        speedVal = 255;
+        updateSpeedAll();
+        break;
+      case 'h':
+        speedVal = 175;
+        updateSpeedAll();
+        break;
+      case 'b':
+        speedVal = 100;
+        updateSpeedAll();
+        break;
+      case 'o':
+        speedVal = 0;
+        updateSpeedAll();
+        break;
+        
     }
   }
 }
+
+void updateMotor(int dir1Pin, int dir2Pin, int pwmPin, int cmd) {
+  switch (cmd) {
+    case 0:
+      digitalWrite(dir1Pin, LOW);
+      digitalWrite(dir2Pin, LOW);
+      break;
+    case 1:
+      digitalWrite(dir1Pin, LOW);
+      digitalWrite(dir2Pin, HIGH);
+      break;
+    case 2:
+      digitalWrite(dir1Pin, HIGH);
+      digitalWrite(dir2Pin, LOW);
+      break;
+    case 3:
+      digitalWrite(dir1Pin, HIGH);
+      digitalWrite(dir2Pin, HIGH);
+      break;
+  }
+}
+
+void updateSpeedAll() {
+  analogWrite(m1PwmPin, speedVal);
+  analogWrite(m2PwmPin, speedVal);
+  analogWrite(m3PwmPin, speedVal);
+  analogWrite(m4PwmPin, speedVal);
+}
+
+void motorsStop() {
+  updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 0);
+  updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 0);
+  updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 0);
+  updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 0);
+}
+
+
+
+
+
+
+
+
+
 
 void test() {
   updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 1);
@@ -180,31 +244,3 @@ void test() {
   delay(5000);
 }
 
-void updateMotor(int dir1Pin, int dir2Pin, int pwmPin, int cmd) {
-  switch (cmd) {
-    case 0:
-      digitalWrite(dir1Pin, LOW);
-      digitalWrite(dir2Pin, LOW);
-      break;
-    case 1:
-      digitalWrite(dir1Pin, LOW);
-      digitalWrite(dir2Pin, HIGH);
-      break;
-    case 2:
-      digitalWrite(dir1Pin, HIGH);
-      digitalWrite(dir2Pin, LOW);
-      break;
-    case 3:
-      digitalWrite(dir1Pin, HIGH);
-      digitalWrite(dir2Pin, HIGH);
-      break;
-  }
-  analogWrite(pwmPin, 100);
-}
-
-void motorsStop() {
-  updateMotor(m1Dir1Pin, m1Dir2Pin, m1PwmPin, 0);
-  updateMotor(m2Dir1Pin, m2Dir2Pin, m2PwmPin, 0);
-  updateMotor(m3Dir1Pin, m3Dir2Pin, m3PwmPin, 0);
-  updateMotor(m4Dir1Pin, m4Dir2Pin, m4PwmPin, 0);
-}
